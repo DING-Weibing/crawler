@@ -25,24 +25,26 @@ public class Main {
             if (processedLinks.contains(link)) {
                 continue;
             }
-
-            if (link.contains("news.sina.cn")) {
-                //if (link.contains("sina.cn") && !link.contains("passport.sina.cn") && link.contains("news.sina.cn") || "https://sina.cn".equals(link)) {
+            if (isNewsLink(link)) {
                 Document doc = Jsoup.connect(link).get();
-                Elements links = doc.select("a");
-                for (Element element : links) {
-                    linkPool.add(element.attr("href"));
-                }
-
-                Elements articles = doc.select("article");
-                if (!articles.isEmpty()) {
-                    for (Element article : articles) {
-                        String title = articles.get(0).child(0).text();
-                        System.out.println("title = " + title);
-                    }
-                }
+                doc.select("a").stream().map(aTag -> aTag.attr("href")).forEach(linkPool::add);
+                storeIntoDatabaseIfItIsNewsLink(doc);
                 processedLinks.add(link);
             }
         }
+    }
+
+    private static void storeIntoDatabaseIfItIsNewsLink(Document doc) {
+        Elements articles = doc.select("article");
+        if (!articles.isEmpty()) {
+            for (Element article : articles) {
+                String title = articles.get(0).child(0).text();
+                System.out.println("title = " + title);
+            }
+        }
+    }
+
+    private static boolean isNewsLink(String link) {
+        return link.contains("news.sina.cn");
     }
 }
