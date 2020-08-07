@@ -8,30 +8,21 @@ import org.jsoup.select.Elements;
 
 import java.io.IOException;
 import java.sql.*;
-import java.util.*;
 
 public class Main {
     @SuppressFBWarnings("DMI_CONSTANT_DB_PASSWORD")
     public static void main(String[] args) throws IOException, SQLException {
         Connection connection = DriverManager.getConnection("jdbc:h2:C:\\Users\\dingw\\IdeaProjects\\Crawler\\db", "root", "root");
 
-        while (true) {
-            // 待处理的连接池
-            List<String> linkPool = loadUrlsFromDatabase(connection, "SELECT link FROM LINKS_TO_BE_PROCESSED");
-
-            if (linkPool.isEmpty()) {
-                break;
-            }
-
-            String link = linkPool.remove(linkPool.size() - 1);
-            insertLinkIntoDatabase(connection, link, "DELETE FROM LINKS_TO_BE_PROCESSED WHERE link = ?");
-
+        String link;
+        // 从数据库拿出下一个待处理链接
+        while ((link = getNextLink(connection, "SELECT link FROM LINKS_TO_BE_PROCESSED LIMIT 1")) != null) {
             if (!isLinkProcessed(connection, link)) {
                 if (isInterestingLink(link)) {
                     Document doc = Jsoup.connect(link).get();
                     parseUrlsFromPagesAndStoreIntoDatabase(connection, doc);
                     storeIntoDatabaseIfItIsNewsLink(doc);
-                    insertLinkIntoDatabase(connection, link, "INSERT INTO LINKS_ALREADY_PROCESSED (link) VALUES (?)");
+                    updateDatabase(connection, link, "INSERT INTO LINKS_ALREADY_PROCESSED (link) VALUES (?)");
 
                 }
             }
@@ -42,7 +33,7 @@ public class Main {
     private static void parseUrlsFromPagesAndStoreIntoDatabase(Connection connection, Document doc) throws SQLException {
         for (Element aTag : doc.select("a")) {
             String href = aTag.attr("href");
-            insertLinkIntoDatabase(connection, href, "INSERT INTO LINKS_TO_BE_PROCESSED (link) VALUES (?)");
+            updateDatabase(connection, href, "INSERT INTO LINKS_TO_BE_PROCESSED (link) VALUES (?)");
         }
     }
 
@@ -58,23 +49,24 @@ public class Main {
         return false;
     }
 
-    private static void insertLinkIntoDatabase(Connection connection, String link, String sql) throws SQLException {
+    private static void updateDatabase(Connection connection, String link, String sql) throws SQLException {
         try (PreparedStatement preparedStatement = connection.prepareStatement(sql)) {
             preparedStatement.setString(1, link);
             preparedStatement.executeUpdate();
         }
     }
 
-    private static List<String> loadUrlsFromDatabase(Connection connection, String sql) throws SQLException {
-        ArrayList<String> result = new ArrayList<>();
+    private static String getNextLink(Connection connection, String sql) throws SQLException {
+        String result;
         try (PreparedStatement linkToBeProcessed = connection.prepareStatement(sql);
              ResultSet resultSet = linkToBeProcessed.executeQuery()
         ) {
-            while (resultSet.next()) {
-                result.add(resultSet.getString(1));
+            if (resultSet.next()) {
+                result = resultSet.getString(1);
+                updateDatabase(connection, result, "DELETE FROM LINKS_TO_BE_PROCESSED WHERE link = ?");
             }
         }
-        return result;
+        return null;
     }
 
     private static void storeIntoDatabaseIfItIsNewsLink(Document doc) {
