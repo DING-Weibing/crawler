@@ -17,36 +17,44 @@ public class JdbcCrawlerDao implements CrawlerDao {
     }
 
     @Override
-    public String getNextLink(String sql) throws SQLException {
-        try (PreparedStatement linkToBeProcessed = connection.prepareStatement(sql);
-             ResultSet resultSet = linkToBeProcessed.executeQuery()
-        ) {
-            if (resultSet.next()) {
-                String result;
-                result = resultSet.getString(1);
-                updateDatabase(result, "DELETE FROM LINKS_TO_BE_PROCESSED WHERE link = ?");
-                return result;
-            }
+    public void insertNewsIntoDatabase(News news) throws SQLException {
+        try (PreparedStatement preparedStatement = connection.prepareStatement("INSERT INTO NEWS (TITLE, CONTENT, URL, CREATED_AT, MODIFIED_AT) VALUES ( ?,?, ?, NOW(), NOW())")) {
+            preparedStatement.setString(1, news.getTitle());
+            preparedStatement.setString(2, news.getContent());
+            preparedStatement.setString(3, news.getUrl());
+            preparedStatement.executeUpdate();
         }
-        return null;
     }
 
     @Override
-    public void updateDatabase(String link, String sql) throws SQLException {
-        try (PreparedStatement preparedStatement = connection.prepareStatement(sql)) {
+    public void insertProcessedLink(String link) throws SQLException {
+        try (PreparedStatement preparedStatement = connection.prepareStatement("INSERT INTO LINKS_ALREADY_PROCESSED (link) VALUES (?)")) {
             preparedStatement.setString(1, link);
             preparedStatement.executeUpdate();
         }
     }
 
     @Override
-    public void insertNewsIntoDatabase(String url, String title, String content) throws SQLException {
-        try (PreparedStatement preparedStatement = connection.prepareStatement("INSERT INTO NEWS (TITLE, CONTENT, URL, CREATED_AT, MODIFIED_AT) VALUES ( ?,?, ?, NOW(), NOW())")) {
-            preparedStatement.setString(1, title);
-            preparedStatement.setString(2, content);
-            preparedStatement.setString(3, url);
+    public void insertToBeProcessedLink(String link) throws SQLException {
+        try (PreparedStatement preparedStatement = connection.prepareStatement("INSERT INTO LINKS_TO_BE_PROCESSED (link) VALUES (?)")) {
+            preparedStatement.setString(1, link);
             preparedStatement.executeUpdate();
         }
+    }
+
+    @Override
+    public String getNextLinkThenDelete() throws SQLException {
+        try (PreparedStatement linkToBeProcessed = connection.prepareStatement("SELECT link FROM LINKS_TO_BE_PROCESSED LIMIT 1");
+             ResultSet resultSet = linkToBeProcessed.executeQuery()
+        ) {
+            if (resultSet.next()) {
+                String result;
+                result = resultSet.getString(1);
+                deleteToBeProcessedLink(result);
+                return result;
+            }
+        }
+        return null;
     }
 
     @Override
@@ -60,5 +68,21 @@ public class JdbcCrawlerDao implements CrawlerDao {
             }
         }
         return false;
+    }
+
+    @Override
+    public void deleteProcessedLink(String link) throws SQLException {
+        try (PreparedStatement preparedStatement = connection.prepareStatement("DELETE FROM LINKS_ALREADY_PROCESSED WHERE link = ?")) {
+            preparedStatement.setString(1, link);
+            preparedStatement.executeUpdate();
+        }
+    }
+
+    @Override
+    public void deleteToBeProcessedLink(String link) throws SQLException {
+        try (PreparedStatement preparedStatement = connection.prepareStatement("DELETE FROM LINKS_TO_BE_PROCESSED WHERE link = ?")) {
+            preparedStatement.setString(1, link);
+            preparedStatement.executeUpdate();
+        }
     }
 }

@@ -10,18 +10,18 @@ import java.sql.*;
 import java.util.stream.Collectors;
 
 public class Crawler {
-    CrawlerDao dao = new JdbcCrawlerDao();
+    CrawlerDao dao = new MyBatisCrawlerDao();
 
     public void run() throws SQLException, IOException {
         String link;
         // 从数据库拿出下一个待处理链接
-        while ((link = dao.getNextLink("SELECT link FROM LINKS_TO_BE_PROCESSED LIMIT 1")) != null) {
+        while ((link = dao.getNextLinkThenDelete()) != null) {
             if (!dao.isLinkProcessed(link)) {
                 if (isInterestingLink(link)) {
                     Document doc = Jsoup.connect(link).get();
                     parseUrlsFromPagesAndStoreIntoDatabase(doc);
                     storeIntoDatabaseIfItIsNewsLink(doc);
-                    dao.updateDatabase(link, "INSERT INTO LINKS_ALREADY_PROCESSED (link) VALUES (?)");
+                    dao.insertProcessedLink(link);
                 }
             }
         }
@@ -40,7 +40,7 @@ public class Crawler {
             }
 
             if (!href.toLowerCase().startsWith("javascript")) {
-                dao.updateDatabase(href, "INSERT INTO LINKS_TO_BE_PROCESSED (link) VALUES (?)");
+                dao.insertToBeProcessedLink(href);
             }
         }
     }
@@ -53,8 +53,8 @@ public class Crawler {
                 Elements pTags = article.select("p");
                 String content = pTags.stream().map(Element::text).collect(Collectors.joining("\n"));
                 String url = doc.location();
-                dao.insertNewsIntoDatabase(url, title, content);
-
+                News news = new News(title, url, content);
+                dao.insertNewsIntoDatabase(news);
             }
         }
     }
