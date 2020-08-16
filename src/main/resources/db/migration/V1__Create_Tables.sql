@@ -12,8 +12,8 @@ create table IF NOT EXISTS NEWS
     TITLE       TEXT,
     CONTENT     TEXT,
     URL         VARCHAR(2000),
-    CREATED_AT  TIMESTAMP,
-    MODIFIED_AT TIMESTAMP,
+    CREATED_AT  TIMESTAMP default NOW(),
+    MODIFIED_AT TIMESTAMP default NOW(),
     constraint NEWS_PK
         primary key (ID)
 );

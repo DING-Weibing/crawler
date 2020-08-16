@@ -8,6 +8,8 @@ import org.apache.ibatis.session.SqlSessionFactoryBuilder;
 import java.io.IOException;
 import java.io.InputStream;
 import java.sql.SQLException;
+import java.util.HashMap;
+import java.util.Map;
 
 public class MyBatisCrawlerDao implements CrawlerDao {
     private final SqlSessionFactory sqlSessionFactory;
@@ -24,7 +26,7 @@ public class MyBatisCrawlerDao implements CrawlerDao {
     }
 
     @Override
-    public String getNextLinkThenDelete() throws SQLException {
+    public synchronized String getNextLinkThenDelete() {
         try (SqlSession session = sqlSessionFactory.openSession(true)) {
             String url = session.selectOne("com.github.hcsp.MyMapper.selectNextAvailableLink");
             if (url != null) {
@@ -36,45 +38,60 @@ public class MyBatisCrawlerDao implements CrawlerDao {
     }
 
     @Override
-    public boolean isLinkProcessed(String link) throws SQLException {
+    public boolean isLinkProcessed(String link) {
         try (SqlSession session = sqlSessionFactory.openSession(true)) {
-            int count = session.selectOne("com.github.hcsp.MyMapper.countProcessedLink", link);
+            Map<String, String> hashMap = new HashMap<>();
+            hashMap.put("tableName", "LINKS_ALREADY_PROCESSED");
+            hashMap.put("link", link);
+            int count = session.selectOne("com.github.hcsp.MyMapper.countLink", hashMap);
             return count > 0;
         }
     }
 
     @Override
-    public void deleteProcessedLink(String link) throws SQLException {
+    public void deleteProcessedLink(String link) {
         try (SqlSession session = sqlSessionFactory.openSession(true)) {
-            session.delete("com.github.hcsp.MyMapper.deleteProcessedLink", link);
+            Map<String, String> hashMap = new HashMap<>();
+            hashMap.put("tableName", "LINKS_ALREADY_PROCESSED");
+            hashMap.put("link", link);
+            session.delete("com.github.hcsp.MyMapper.deleteLink", hashMap);
         }
     }
 
     @Override
-    public void deleteToBeProcessedLink(String link) throws SQLException {
+    public void deleteToBeProcessedLink(String link) {
         try (SqlSession session = sqlSessionFactory.openSession(true)) {
-            session.delete("com.github.hcsp.MyMapper.deleteToBeProcessedLink", link);
+            Map<String, String> hashMap = new HashMap<>();
+            hashMap.put("tableName", "LINKS_TO_BE_PROCESSED");
+            hashMap.put("link", link);
+            session.delete("com.github.hcsp.MyMapper.deleteLink", hashMap);
         }
     }
 
     @Override
-    public void insertNewsIntoDatabase(News news) throws SQLException {
+    public void insertNewsIntoDatabase(News news) {
         try (SqlSession session = sqlSessionFactory.openSession(true)) {
             session.insert("com.github.hcsp.MyMapper.insertNews", news);
         }
     }
 
     @Override
-    public void insertProcessedLink(String link) throws SQLException {
+    public void insertProcessedLink(String link) {
         try (SqlSession session = sqlSessionFactory.openSession(true)) {
-            session.insert("com.github.hcsp.MyMapper.insertProcessedLink", link);
+            Map<String, String> hashMap = new HashMap<>();
+            hashMap.put("tableName", "LINKS_ALREADY_PROCESSED");
+            hashMap.put("link", link);
+            session.insert("com.github.hcsp.MyMapper.insertLink", hashMap);
         }
     }
 
     @Override
-    public void insertToBeProcessedLink(String link) throws SQLException {
+    public void insertToBeProcessedLink(String link) {
         try (SqlSession session = sqlSessionFactory.openSession(true)) {
-            session.insert("com.github.hcsp.MyMapper.insertToBeProcessedLink", link);
+            Map<String, String> hashMap = new HashMap<>();
+            hashMap.put("tableName", "LINKS_TO_BE_PROCESSED");
+            hashMap.put("link", link);
+            session.insert("com.github.hcsp.MyMapper.insertLink", hashMap);
         }
     }
 }

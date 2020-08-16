@@ -8,31 +8,51 @@
         FROM LINKS_TO_BE_PROCESSED
         LIMIT 1
     </select>
-    <delete id="deleteToBeProcessedLink" parameterType="String">
+    <delete id="deleteLink" parameterType="HashMap">
         DELETE
-        FROM LINKS_TO_BE_PROCESSED
-        WHERE link = #{link}
-    </delete>
-    <delete id="deleteProcessedLink" parameterType="String">
-        DELETE
-        FROM LINKS_ALREADY_PROCESSED
+        FROM
+        <choose>
+            <when test="tableName == 'LINKS_ALREADY_PROCESSED'">
+                LINKS_ALREADY_PROCESSED
+            </when>
+            <when test="tableName == 'LINKS_TO_BE_PROCESSED'">
+                LINKS_TO_BE_PROCESSED
+            </when>
+        </choose>
         WHERE link = #{link}
     </delete>
     <insert id="insertNews" parameterType="com.github.hcsp.News">
         INSERT INTO NEWS (TITLE, CONTENT, URL, CREATED_AT, MODIFIED_AT)
         VALUES (#{title}, #{content}, #{url}, NOW(), NOW())
     </insert>
-    <insert id="insertToBeProcessedLink" parameterType="String">
-        INSERT INTO LINKS_TO_BE_PROCESSED (LINK)
+    <insert id="insertLink" parameterType="HashMap">
+        INSERT INTO
+        <choose>
+            <when test="tableName == 'LINKS_ALREADY_PROCESSED'">
+                LINKS_ALREADY_PROCESSED
+            </when>
+            <when test="tableName == 'LINKS_TO_BE_PROCESSED'">
+                LINKS_TO_BE_PROCESSED
+            </when>
+        </choose>
+        (LINK)
         VALUES (#{link})
     </insert>
-    <insert id="insertProcessedLink" parameterType="String">
-        INSERT INTO LINKS_ALREADY_PROCESSED(LINK)
-        VALUES (#{link})
-    </insert>
-    <select id="countProcessedLink" parameterType="String" resultType="int">
+    <select id="countLink" parameterType="HashMap" resultType="int">
         SELECT COUNT(LINK)
-        FROM LINKS_ALREADY_PROCESSED
+        FROM
+        <choose>
+            <when test="tableName == 'LINKS_ALREADY_PROCESSED'">
+                LINKS_ALREADY_PROCESSED
+            </when>
+            <when test="tableName == 'LINKS_TO_BE_PROCESSED'">
+                LINKS_TO_BE_PROCESSED
+            </when>
+        </choose>
         WHERE LINK = #{link}
+    </select>
+    <select id="selectNews" resultType="News">
+        SELECT TITLE, URL, CONTENT, CREATED_AT, MODIFIED_AT
+        FROM NEWS;
     </select>
 </mapper>

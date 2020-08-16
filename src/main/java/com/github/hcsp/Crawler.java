@@ -9,27 +9,26 @@ import java.io.IOException;
 import java.sql.*;
 import java.util.stream.Collectors;
 
-public class Crawler {
-    CrawlerDao dao = new MyBatisCrawlerDao();
+public class Crawler extends Thread {
+    private static final CrawlerDao dao = new MyBatisCrawlerDao();
 
-    public void run() throws SQLException, IOException {
+    public void run() {
         String link;
         // 从数据库拿出下一个待处理链接
-        while ((link = dao.getNextLinkThenDelete()) != null) {
-            if (!dao.isLinkProcessed(link)) {
-                if (isInterestingLink(link)) {
-                    Document doc = Jsoup.connect(link).get();
-                    parseUrlsFromPagesAndStoreIntoDatabase(doc);
-                    storeIntoDatabaseIfItIsNewsLink(doc);
-                    dao.insertProcessedLink(link);
+        try {
+            while ((link = dao.getNextLinkThenDelete()) != null) {
+                if (!dao.isLinkProcessed(link)) {
+                    if (isInterestingLink(link)) {
+                        Document doc = Jsoup.connect(link).get();
+                        parseUrlsFromPagesAndStoreIntoDatabase(doc);
+                        storeIntoDatabaseIfItIsNewsLink(doc);
+                        dao.insertProcessedLink(link);
+                    }
                 }
             }
+        } catch (Exception e) {
+            throw new RuntimeException(e);
         }
-    }
-
-    public static void main(String[] args) throws IOException, SQLException {
-        Crawler crawler = new Crawler();
-        crawler.run();
     }
 
     private void parseUrlsFromPagesAndStoreIntoDatabase(Document doc) throws SQLException {
