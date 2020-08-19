@@ -23,7 +23,7 @@
     </delete>
     <insert id="insertNews" parameterType="com.github.hcsp.News">
         INSERT INTO NEWS (TITLE, CONTENT, URL, CREATED_AT, MODIFIED_AT)
-        VALUES (#{title}, #{content}, #{url}, NOW(), NOW())
+        VALUES (#{title}, #{content}, #{url}, #{createdAt}, #{modifiedAt})
     </insert>
     <insert id="insertLink" parameterType="HashMap">
         INSERT INTO
@@ -51,8 +51,13 @@
         </choose>
         WHERE LINK = #{link}
     </select>
-    <select id="selectNews" resultType="News">
+    <select id="selectAllNews" resultType="com.github.hcsp.News">
         SELECT TITLE, URL, CONTENT, CREATED_AT, MODIFIED_AT
         FROM NEWS;
+    </select>
+    <select id="selectOneMillionNews" resultType="com.github.hcsp.News">
+        SELECT TITLE, URL, CONTENT, CREATED_AT, MODIFIED_AT
+        FROM NEWS
+        LIMIT 2000;
     </select>
 </mapper>

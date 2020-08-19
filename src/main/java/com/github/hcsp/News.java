@@ -7,7 +7,7 @@ public class News {
     private final String url;
     private final String content;
     private Instant createdAt;
-    private Instant ModifiedAt;
+    private Instant modifiedAt;
 
     public News(String title, String url, String content) {
         this.title = title;
@@ -36,10 +36,10 @@ public class News {
     }
 
     public Instant getModifiedAt() {
-        return ModifiedAt;
+        return modifiedAt;
     }
 
     public void setModifiedAt(Instant modifiedAt) {
-        ModifiedAt = modifiedAt;
+        this.modifiedAt = modifiedAt;
     }
 }
